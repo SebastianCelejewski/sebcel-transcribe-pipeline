@@ -79,7 +79,7 @@ The region choice is deliberate to improve transcription accuracy for Brazilian 
   - Frontend build pipeline
 - Secrets managed via GitHub repository secrets
 
-###Frontend
+### Frontend
 - React
 - Static hosting (S3)
 - Presigned S3 uploads
@@ -114,13 +114,15 @@ sebcel-transcribe-pipeline/
 ## Naming Conventions
 All AWS resources follow a consistent naming pattern:
 
-sebcel-transcribe-<component>-<environment>
+<org>-<app>-<component>-<resource_type>-<env>
 
 Examples:
-- sebcel-transcribe-input-dev
-- sebcel-transcribe-postprocess-fn-prod
-- sebcel-transcribe-output-test
+- sebcel-transcribe-input-bucket-dev
+- sebcel-transcribe-postprocess-function-prod
+- sebcel-transcribe-output-bucket-test
 This ensures clarity, safe parallel environments, and easy cleanup.
+
+The Name tag duplicates the physical resource name to simplify filtering and alphabetical grouping in the AWS Console.
 
 ## Security Considerations
 - Separate IAM role per function
