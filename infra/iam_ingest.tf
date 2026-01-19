@@ -36,23 +36,33 @@ resource "aws_iam_policy" "ingest" {
         Resource = "*"
       },
       {
-        Sid = "S3InputOutput"
-        Effect = "Allow"
-        Action = [
-          "s3:GetObject"
-        ]
-        Resource = [
-          "arn:aws:s3:::sebcel-transcribe-bucket-${var.environment}/input/*"
-        ]
-      },
-      {
         Sid = "Transcribe"
         Effect = "Allow"
         Action = [
           "transcribe:StartTranscriptionJob",
           "transcribe:GetTranscriptionJob"
         ]
-        Resource = "*"
+        Resource = [
+          "*"
+        ]
+      },
+      {
+        Sid = "BucketMetadata"
+        Effect = "Allow"
+        Action = "s3:GetBucketLocation"
+        Resource = "arn:aws:s3:::${aws_s3_bucket.transcribe.bucket}"
+      },
+      {
+        Sid = "ReadInputObject"
+        Effect = "Allow"
+        Action = "s3:GetObject"
+        Resource = "arn:aws:s3:::${aws_s3_bucket.transcribe.bucket}/input/*"
+      },
+      {
+        Sid = "TranscribeOutputValidation"
+        Effect = "Allow"
+        Action = "s3:PutObject"
+        Resource = "arn:aws:s3:::${aws_s3_bucket.transcribe.bucket}/output/json/*"
       }
     ]
   })

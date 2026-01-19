@@ -1,0 +1,20 @@
+{
+  "name": "sebcel-transcribe-ingest",
+  "version": "1.0.0",
+  "description": "Lambda ingest function for sebcel-transcribe service",
+  "type": "module",
+  "private": true,
+  "main": "index.mjs",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@aws-sdk/client-transcribe": "^3.971.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
