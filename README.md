@@ -20,30 +20,30 @@ This repository is designed as a learning and portfolio project, with emphasis o
 
 ## Architecture overview
 
-Web App (React)
-   │
-   │  Presigned upload
-   ▼
-Amazon S3  /input/
-   │
-   │  ObjectCreated
-   ▼
-AWS Lambda function: Transcribe
-   │
-   │  AWS Transcribe output
-   ▼
-Amazon S3  /output/json/
-   │
-   │  ObjectCreated
-   ▼
-AWS Lambda function: Post-process
-   │
-   │  Translate + format
-   ▼
-Amazon S3  /output/txt/  /output/srt/
-   │
-   ▼
-Web App (preview & download)
+  Web App (React)
+     │
+     │  Presigned upload
+     ▼
+  Amazon S3  /input/
+     │
+     │  ObjectCreated
+     ▼
+  AWS Lambda function: Transcribe
+     │
+     │  AWS Transcribe output
+     ▼
+  Amazon S3  /output/json/
+     │
+     │  ObjectCreated
+     ▼
+  AWS Lambda function: Post-process
+     │
+     │  Translate + format
+     ▼
+  Amazon S3  /output/txt/  /output/srt/
+     │
+     ▼
+  Web App (preview & download)
 
 ## Region & Language Support
 
