@@ -36,6 +36,12 @@ resource "aws_iam_policy" "postprocess" {
         Resource = "*"
       },
       {
+        Sid = "S3BucketMetadata"
+        Effect = "Allow"
+        Action = "s3:GetBucketLocation"
+        Resource = "arn:aws:s3:::sebcel-transcribe-bucket-${var.environment}"
+      },
+      {
         Sid = "S3ReadTranscribeJson"
         Effect = "Allow"
         Action = [

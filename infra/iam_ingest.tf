@@ -39,8 +39,7 @@ resource "aws_iam_policy" "ingest" {
         Sid = "Transcribe"
         Effect = "Allow"
         Action = [
-          "transcribe:StartTranscriptionJob",
-          "transcribe:GetTranscriptionJob"
+          "transcribe:StartTranscriptionJob"
         ]
         Resource = [
           "*"
