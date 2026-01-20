@@ -1,7 +1,7 @@
 data "aws_caller_identity" "current" {}
 
 resource "aws_s3_bucket_policy" "allow_transcribe_access" {
-  bucket = aws_s3_bucket.transcribe.id
+  bucket = aws_s3_bucket.shared.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -18,7 +18,7 @@ resource "aws_s3_bucket_policy" "allow_transcribe_access" {
           "s3:GetObject"
         ]
 
-        Resource = "arn:aws:s3:::${aws_s3_bucket.transcribe.bucket}/input/*"
+        Resource = "arn:aws:s3:::${aws_s3_bucket.shared.bucket}/input/*"
 
         Condition = {
           StringEquals = {
@@ -35,7 +35,7 @@ resource "aws_s3_bucket_policy" "allow_transcribe_access" {
         }
 
         Action   = ["s3:ListBucket"]
-        Resource = "arn:aws:s3:::${aws_s3_bucket.transcribe.bucket}"
+        Resource = "arn:aws:s3:::${aws_s3_bucket.shared.bucket}"
 
         Condition = {
           StringLike = {
@@ -59,7 +59,7 @@ resource "aws_s3_bucket_policy" "allow_transcribe_access" {
           "s3:PutObjectAcl"
         ]
 
-        Resource = "arn:aws:s3:::${aws_s3_bucket.transcribe.bucket}/output/json/*"
+        Resource = "arn:aws:s3:::${aws_s3_bucket.shared.bucket}/output/json/*"
 
         Condition = {
           StringEquals = {
@@ -79,7 +79,7 @@ resource "aws_s3_bucket_policy" "allow_transcribe_access" {
           "s3:GetBucketLocation"
         ]
 
-        Resource = "arn:aws:s3:::${aws_s3_bucket.transcribe.bucket}"
+        Resource = "arn:aws:s3:::${aws_s3_bucket.shared.bucket}"
 
         Condition = {
           StringEquals = {

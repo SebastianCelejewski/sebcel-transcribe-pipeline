@@ -39,7 +39,7 @@ resource "aws_iam_policy" "postprocess" {
         Sid = "S3BucketMetadata"
         Effect = "Allow"
         Action = "s3:GetBucketLocation"
-        Resource = "arn:aws:s3:::sebcel-transcribe-bucket-${var.environment}"
+        Resource = aws_s3_bucket.shared.arn
       },
       {
         Sid = "S3ReadTranscribeJson"
@@ -48,7 +48,7 @@ resource "aws_iam_policy" "postprocess" {
           "s3:GetObject"
         ]
         Resource = [
-          "arn:aws:s3:::sebcel-transcribe-bucket-${var.environment}/output/json/*"
+          "${aws_s3_bucket.shared.arn}/output/json/*"
         ]
       },
       {
@@ -58,8 +58,8 @@ resource "aws_iam_policy" "postprocess" {
           "s3:PutObject"
         ]
         Resource = [
-          "arn:aws:s3:::sebcel-transcribe-bucket-${var.environment}/output/txt/*",
-          "arn:aws:s3:::sebcel-transcribe-bucket-${var.environment}/output/srt/*"
+          "${aws_s3_bucket.shared.arn}/output/txt/*",
+          "${aws_s3_bucket.shared.arn}/output/srt/*"
         ]
       },
       {

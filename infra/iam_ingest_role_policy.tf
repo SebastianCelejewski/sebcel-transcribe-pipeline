@@ -49,19 +49,19 @@ resource "aws_iam_policy" "ingest" {
         Sid = "BucketMetadata"
         Effect = "Allow"
         Action = "s3:GetBucketLocation"
-        Resource = "arn:aws:s3:::${aws_s3_bucket.transcribe.bucket}"
+        Resource = aws_s3_bucket.shared.arn
       },
       {
         Sid = "ReadInputObject"
         Effect = "Allow"
         Action = "s3:GetObject"
-        Resource = "arn:aws:s3:::${aws_s3_bucket.transcribe.bucket}/input/*"
+        Resource = "${aws_s3_bucket.shared.arn}/input/*"
       },
       {
         Sid = "TranscribeOutputValidation"
         Effect = "Allow"
         Action = "s3:PutObject"
-        Resource = "arn:aws:s3:::${aws_s3_bucket.transcribe.bucket}/output/json/*"
+        Resource = "${aws_s3_bucket.shared.arn}/output/json/*"
       }
     ]
   })

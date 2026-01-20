@@ -1,5 +1,5 @@
 resource "aws_s3_bucket_notification" "transcribe" {
-  bucket = aws_s3_bucket.transcribe.id
+  bucket = aws_s3_bucket.shared.id
 
   lambda_function {
     id                  = "ingest"
