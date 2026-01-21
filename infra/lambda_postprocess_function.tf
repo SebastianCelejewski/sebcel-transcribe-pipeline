@@ -14,6 +14,7 @@ resource "aws_lambda_function" "postprocess" {
     variables = {
       BUCKET_NAME = aws_s3_bucket.shared.bucket
       ENVIRONMENT = var.environment
+      TRANSLATE_REGION = "us-east-1"
     }
   }
 
