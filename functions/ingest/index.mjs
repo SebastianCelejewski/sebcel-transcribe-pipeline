@@ -1,7 +1,9 @@
 import { TranscribeClient, StartTranscriptionJobCommand } from "@aws-sdk/client-transcribe";
+import { S3Client, HeadObjectCommand } from "@aws-sdk/client-s3";
 import path from "path";
 
 const transcribeClient = new TranscribeClient({});
+const s3Client = new S3Client({});
 
 export const handler = async (event, context) => {
   const eventRecord = event.Records[0];
@@ -10,17 +12,17 @@ export const handler = async (event, context) => {
   const key = decodeURIComponent(eventRecord.s3.object.key.replace(/\+/g, " "));
   const id = context.awsRequestId;
 
-  console.log("bucket:", bucket)
-  console.log("key:", key)
-  console.log("id:", id)
+  console.log("Processing file:", key)
 
-  if (!key.startsWith("input/")) return;
+  if (!key.startsWith("input/")) {
+    console.log("Not an input object, skipping:", key);
+    return;
+  }
 
   const extension = path.extname(key).slice(1).toLowerCase();
-  console.log("extension", extension)
 
   if (!["mp3", "mp4", "wav", "flac"].includes(extension)) {
-    throw new Error("Invalid media type");
+    throw new Error("Invalid media type, skipping:", key);
   }
 
   const fileUri = `s3://${bucket}/${key}`;
@@ -30,9 +32,10 @@ export const handler = async (event, context) => {
 
   const outputKey = `output/json/${baseName}.json`;
 
-  console.log("fileUri:", fileUri)
-  console.log("baseName:", baseName)
-  console.log("outputKey:", outputKey)
+  if (await s3ObjectExists(s3Client, bucket, outputKey)) {
+    console.log("Transcription already exists in", outputKey, ", skipping:", key);
+    return;
+  }
 
   const params = {
     IdentifyLanguage: true,
@@ -45,9 +48,19 @@ export const handler = async (event, context) => {
     OutputKey: outputKey
   };
   
-  console.log("Params:", JSON.stringify(params))
-
   await transcribeClient.send(new StartTranscriptionJobCommand(params));
 
   console.log("Started Transcribe job for", key);
 };
+
+async function s3ObjectExists(s3, bucket, key) {
+  try {
+    await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
+    return true;
+  } catch (e) {
+    if (e.name === "NotFound") {
+      return false;
+    }
+    throw e;
+  }
+}

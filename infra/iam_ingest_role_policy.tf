@@ -58,6 +58,12 @@ resource "aws_iam_policy" "ingest" {
         Resource = "${aws_s3_bucket.shared.arn}/input/*"
       },
       {
+			  "Sid": "VerifyOutputObjectExistence",
+			  "Action": "s3:GetObject",
+			  "Effect": "Allow",
+			  "Resource": "${aws_s3_bucket.shared.arn}/output/json/*"
+		  },
+      {
         Sid = "TranscribeOutputValidation"
         Effect = "Allow"
         Action = "s3:PutObject"

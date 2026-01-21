@@ -48,7 +48,9 @@ resource "aws_iam_policy" "postprocess" {
           "s3:GetObject"
         ]
         Resource = [
-          "${aws_s3_bucket.shared.arn}/output/json/*"
+          "${aws_s3_bucket.shared.arn}/output/json/*",
+          "${aws_s3_bucket.shared.arn}/output/txt/*",
+          "${aws_s3_bucket.shared.arn}/output/srt/*"
         ]
       },
       {

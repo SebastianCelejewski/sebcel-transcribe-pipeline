@@ -1,6 +1,6 @@
-import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, GetObjectCommand, PutObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 
-const s3 = new S3Client({});
+const s3Client = new S3Client({});
 
 const streamToString = async (stream) =>
   await new Promise((resolve, reject) => {
@@ -15,10 +15,10 @@ export const handler = async (event) => {
   const bucket = record.s3.bucket.name;
   const key = decodeURIComponent(record.s3.object.key.replace(/\+/g, " "));
 
-  console.log("Postprocess triggered for:", key);
+  console.log("Processing file:", key)
 
   if (!key.startsWith("output/json/") || !key.endsWith(".json")) {
-    console.log("Not a Transcribe JSON, skipping");
+    console.log("Not a JSON file, skipping:", key);
     return;
   }
 
@@ -26,34 +26,45 @@ export const handler = async (event) => {
     .replace(/^output\/json\//, "")
     .replace(/\.json$/i, "");
 
-  // 1. Read JSON
-  const data = await s3.send(
-    new GetObjectCommand({ Bucket: bucket, Key: key })
-  );
+  const txtOutputKey = `output/txt/${baseName}.txt`;
+  
+  if (await s3ObjectExists(s3Client, bucket, txtOutputKey))
+  {
+    console.log("Text translation already exists in", txtOutputKey, ", skipping:", key);
+    return;
+  }
+
+  const data = await s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
   const jsonString = await streamToString(data.Body);
   const transcription = JSON.parse(jsonString);
 
-  const text =
-    transcription?.results?.transcripts?.[0]?.transcript || "";
+  const text = transcription?.results?.transcripts?.[0]?.transcript || "";
 
   if (!text) {
     console.log("No transcript text found, skipping");
     return;
   }
 
-  // 2. Write TXT (na razie tylko jeden język – oryginalny)
-  const txtKey = `output/txt/${baseName}.txt`;
-
-  await s3.send(
+  await s3Client.send(
     new PutObjectCommand({
       Bucket: bucket,
-      Key: txtKey,
+      Key: txtOutputKey,
       Body: text,
       ContentType: "text/plain; charset=utf-8",
     })
   );
 
-  console.log("TXT written:", txtKey);
-
-  // SRT i Translate dodamy w kolejnym kroku
+  console.log("TXT written:", txtOutputKey);
 };
+
+async function s3ObjectExists(s3, bucket, key) {
+  try {
+    await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
+    return true;
+  } catch (e) {
+    if (e.name === "NotFound") {
+      return false;
+    }
+    throw e;
+  }
+}
