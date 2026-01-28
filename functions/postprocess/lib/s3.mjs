@@ -2,7 +2,7 @@ import { S3Client, GetObjectCommand, PutObjectCommand, HeadObjectCommand } from 
 
 const s3Client = new S3Client({});
 
-export async function s3ObjectExists(bucket, key) {
+const objectExists = async (bucket, key) => {
     console.log("Checking if object", key, "exists in", bucket);
     try {
         await s3Client.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
@@ -15,15 +15,14 @@ export async function s3ObjectExists(bucket, key) {
     }
 }
 
-export async function getJson(bucket, key) {
+const getJson = async (bucket, key) => {
     console.log("Getting JSON", key, "from", bucket);
     const data = await s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
     const jsonString = await streamToString(data.Body);
-    const transcription = JSON.parse(jsonString);
-    return transcription
+    return jsonString;
 }
 
-export async function putTxt(bucket, key, text) {
+const putTxt = async (bucket, key, text) => {
     console.log("Putting TXT", key, "to", bucket);
     await s3Client.send(
         new PutObjectCommand({
@@ -35,13 +34,13 @@ export async function putTxt(bucket, key, text) {
     );
 }
 
-export async function putSrt(bucket, baseName, language, srtText) {
+const putSrt = async (bucket, baseName, language, srtText) => {
     const key = `output/srt/${language}/${baseName}.srt`
     console.log("Putting SRT", key, "to", bucket);
     await s3Client.send(new PutObjectCommand({
         Bucket: bucket,
         Key: key,
-        Body: allSrts[lang],
+        Body: srtText,
         ContentType: "application/x-subrip; charset=utf-8"
     }));
 }
@@ -53,3 +52,10 @@ const streamToString = async (stream) =>
     stream.on("end", () => resolve(Buffer.concat(chunks).toString("utf-8")));
     stream.on("error", reject);
   });
+
+export const s3 = {
+    objectExists,
+    getJson,
+    putTxt,
+    putSrt
+}

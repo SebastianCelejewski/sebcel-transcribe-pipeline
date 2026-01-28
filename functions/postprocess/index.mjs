@@ -1,6 +1,5 @@
-import { TranslateClient, TranslateTextCommand } from "@aws-sdk/client-translate";
-import { s3ObjectExists, getJson, putTxt, putSrt } from "./s3.mjs";
-const translateClient = new TranslateClient({ region: process.env.TRANSLATE_REGION });
+import { s3 } from "./lib/s3.mjs";
+import { translate } from "./lib/translate.mjs";
 
 export const handler = async (event) => {
   const record = event.Records[0];
@@ -21,11 +20,10 @@ export const handler = async (event) => {
   const txtOutputKey = `output/txt/${baseName}.txt`;
 
   console.log("Loading transcription JSON file");
+  const jsonString = await s3.getJson(bucket, key)
+  const transcription = JSON.parse(jsonString);
 
-
-  const transcription = getJson(bucket, key)
-
-  if (await s3ObjectExists(bucket, txtOutputKey)) {
+  if (await s3.objectExists(bucket, txtOutputKey)) {
     console.log("Text translation already exists in", txtOutputKey, ", skipping:", key);
   }
   else {
@@ -38,7 +36,7 @@ export const handler = async (event) => {
     }
 
     console.log("Saving full text to a txt file")
-    await putTxt(bucket, txtOutputKey, text)
+    await s3.putTxt(bucket, txtOutputKey, text)
 
     console.log("Full text written:", txtOutputKey);
   }
@@ -85,7 +83,7 @@ export const handler = async (event) => {
   console.log("Saving SRT files")
 
   for (const lang of ["es", "pl", "en", "pt"]) {
-    putSrt(bucket, baseName, lang, allSrts[lang])
+    s3.putSrt(bucket, baseName, lang, allSrts[lang])
   }
 };
 
@@ -136,7 +134,7 @@ async function translateSegments(segments, source, target) {
   const result = [];
 
   for (const seg of segments) {
-    const translated = await translateText(seg.text, source, target);
+    const translated = await translate.translateText(seg.text, source, target);
     result.push({
       start: seg.start,
       end: seg.end,
@@ -146,16 +144,6 @@ async function translateSegments(segments, source, target) {
 
   return result;
 }
-
-const translateText = async (text, source, target) => {
-  const cmd = new TranslateTextCommand({
-    Text: text,
-    SourceLanguageCode: source,
-    TargetLanguageCode: target
-  });
-  const res = await translateClient.send(cmd);
-  return res.TranslatedText;
-};
 
 const makeSrt = (segments) => {
   let srt = "";
