@@ -1,5 +1,7 @@
 import { s3 } from "./lib/s3.mjs";
 import { translate } from "./lib/translate.mjs";
+import { segmentation } from "./lib/segmentation.mjs";
+import { srt } from "./lib/srt.mjs";
 
 export const handler = async (event) => {
   const record = event.Records[0];
@@ -50,7 +52,7 @@ export const handler = async (event) => {
 
   console.log("Building time segments from audio segments");
   const audioSegments = transcription.results.audio_segments;
-  const timeSegments = buildSegmentsFromAudio(audioSegments);
+  const timeSegments = segmentation.buildSegmentsFromAudio(audioSegments);
 
   console.log("Building base segments");
   const baseLang = detectedLang;
@@ -68,7 +70,7 @@ export const handler = async (event) => {
   for (const lang of targetLanguages) {
     if (lang === baseLang) {
       console.log("Skipping translation to base language:", lang);
-      allSrts[lang] = makeSrt(baseSegments);
+      allSrts[lang] = srt.makeSrt(baseSegments);
     } else {
       console.log("Translating segments to", lang);
       const translated = await translateSegments(
@@ -76,7 +78,7 @@ export const handler = async (event) => {
         baseLang,
         lang
       );
-      allSrts[lang] = makeSrt(translated);
+      allSrts[lang] = srt.makeSrt(translated);
     }
   }
 
@@ -87,48 +89,7 @@ export const handler = async (event) => {
   }
 };
 
-/**
- * Segmentation rules
- * - based on audio_segments only
- * - split if duration > maxDuration
- * - no text is lost
- */
-const buildSegmentsFromAudio = (audioSegments, maxDuration = 2.0) => {
-  const result = [];
 
-  for (const seg of audioSegments) {
-    const start = Number(seg.start_time);
-    const end = Number(seg.end_time);
-    const text = seg.transcript.trim();
-
-    if (!text) continue;
-
-    const duration = end - start;
-
-    if (duration <= maxDuration) {
-      result.push({ start, end, text });
-      continue;
-    }
-
-    // Long segments are split after commas, fullstops, exclamation and question marks
-    const parts = text.split(/(?<=[.!?,])\s+/);
-    const partDuration = duration / parts.length;
-
-    let currentStart = start;
-
-    for (const part of parts) {
-      const currentEnd = currentStart + partDuration;
-      result.push({
-        start: currentStart,
-        end: currentEnd,
-        text: part.trim()
-      });
-      currentStart = currentEnd;
-    }
-  }
-
-  return result;
-};
 
 async function translateSegments(segments, source, target) {
   const result = [];
@@ -144,24 +105,3 @@ async function translateSegments(segments, source, target) {
 
   return result;
 }
-
-const makeSrt = (segments) => {
-  let srt = "";
-
-  segments.forEach((seg, i) => {
-    srt += `${i + 1}\n`;
-    srt += `${toSrtTime(seg.start)} --> ${toSrtTime(seg.end)}\n`;
-    srt += `${seg.text}\n\n`;
-  });
-
-  return srt;
-};
-
-const toSrtTime = (seconds) => {
-  const ms = Math.floor((Number(seconds) % 1) * 1000);
-  const total = Math.floor(Number(seconds));
-  const s = total % 60;
-  const m = Math.floor((total / 60) % 60);
-  const h = Math.floor(total / 3600);
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")},${String(ms).padStart(3, "0")}`;
-};

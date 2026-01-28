@@ -1,7 +1,7 @@
 resource "aws_lambda_function" "postprocess" {
   function_name = "sebcel-transcribe-postprocess-function-${var.environment}"
   role          = aws_iam_role.postprocess.arn
-  runtime       = "nodejs18.x"
+  runtime       = "nodejs24.x"
   handler       = "index.handler"
 
   filename         = data.archive_file.postprocess_function.output_path
