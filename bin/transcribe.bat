@@ -31,12 +31,15 @@ echo Base name:  %BASE%
 echo AWS profile name: %AWS_PROFILE%
 
 REM ==== CLEANUP OUTPUTS ====
-aws s3 rm s3://%BUCKET%/output/json/%BASE%.json --profile %AWS_PROFILE%
-aws s3 rm s3://%BUCKET%/output/txt/%BASE%.txt --profile %AWS_PROFILE%
-aws s3 rm s3://%BUCKET%/output/srt/%BASE%.srt --profile %AWS_PROFILE%
+start aws s3 rm s3://%BUCKET%/output/json/%BASE%.json --profile %AWS_PROFILE%
+start aws s3 rm s3://%BUCKET%/output/txt/%BASE%.txt --profile %AWS_PROFILE%
+start aws s3 rm s3://%BUCKET%/output/srt/en/%BASE%.srt --profile %AWS_PROFILE%
+start aws s3 rm s3://%BUCKET%/output/srt/es/%BASE%.srt --profile %AWS_PROFILE%
+start aws s3 rm s3://%BUCKET%/output/srt/pl/%BASE%.srt --profile %AWS_PROFILE%
+start aws s3 rm s3://%BUCKET%/output/srt/pt/%BASE%.srt --profile %AWS_PROFILE%
 
 REM ==== CLEANUP INPUT ====
-aws s3 rm s3://%BUCKET%/input/%BASE%.mp3 --profile %AWS_PROFILE%
+start aws s3 rm s3://%BUCKET%/input/%BASE%.mp3 --profile %AWS_PROFILE%
 
 REM ==== UPLOAD INPUT AGAIN ====
 aws s3 cp "%INPUT_FILE%" s3://%BUCKET%/input/%BASE%.mp3 --profile %AWS_PROFILE%

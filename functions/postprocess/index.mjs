@@ -1,10 +1,6 @@
-import { S3Client, GetObjectCommand, PutObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { TranslateClient, TranslateTextCommand } from "@aws-sdk/client-translate";
-
-const s3Client = new S3Client({});
-const translateClient = new TranslateClient({
-  region: process.env.TRANSLATE_REGION
-});
+import { s3ObjectExists, getJson, putTxt, putSrt } from "./s3.mjs";
+const translateClient = new TranslateClient({ region: process.env.TRANSLATE_REGION });
 
 export const handler = async (event) => {
   const record = event.Records[0];
@@ -23,40 +19,30 @@ export const handler = async (event) => {
     .replace(/\.json$/i, "");
 
   const txtOutputKey = `output/txt/${baseName}.txt`;
-  
+
   console.log("Loading transcription JSON file");
 
-  const data = await s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
-  const jsonString = await streamToString(data.Body);
-  const transcription = JSON.parse(jsonString);
 
-  if (await s3ObjectExists(s3Client, bucket, txtOutputKey))
-  {
+  const transcription = getJson(bucket, key)
+
+  if (await s3ObjectExists(bucket, txtOutputKey)) {
     console.log("Text translation already exists in", txtOutputKey, ", skipping:", key);
-  } 
-  else 
-  {
+  }
+  else {
     console.log("Fetching full text");
     const text = transcription?.results?.transcripts?.[0]?.transcript || "";
-  
+
     if (!text) {
       console.log("No transcript text found, skipping");
       return;
     }
-  
+
     console.log("Saving full text to a txt file")
-    await s3Client.send(
-      new PutObjectCommand({
-        Bucket: bucket,
-        Key: txtOutputKey,
-        Body: text,
-        ContentType: "text/plain; charset=utf-8",
-      })
-    );
-  
+    await putTxt(bucket, txtOutputKey, text)
+
     console.log("Full text written:", txtOutputKey);
   }
-  
+
   console.log("Generating SRT files");
 
   const detectedLangFull = transcription.results.language_code || "es-ES";
@@ -99,32 +85,9 @@ export const handler = async (event) => {
   console.log("Saving SRT files")
 
   for (const lang of ["es", "pl", "en", "pt"]) {
-    const key = `output/srt/${lang}/${baseName}.srt`
-    console.log("Saving", key);
-    await s3Client.send(new PutObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      Body: allSrts[lang],
-      ContentType: "application/x-subrip; charset=utf-8"
-    }));
-
-    console.log("Saved", lang);
+    putSrt(bucket, baseName, lang, allSrts[lang])
   }
-
 };
-
-async function s3ObjectExists(s3, bucket, key) {
-  console.log("Checking if object",key,"exists in",bucket);
-  try {
-    await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
-    return true;
-  } catch (e) {
-    if (e.name === "NotFound") {
-      return false;
-    }
-    throw e;
-  }
-}
 
 /**
  * Segmentation rules
@@ -206,19 +169,11 @@ const makeSrt = (segments) => {
   return srt;
 };
 
-const streamToString = async (stream) =>
-  await new Promise((resolve, reject) => {
-    const chunks = [];
-    stream.on("data", (c) => chunks.push(c));
-    stream.on("end", () => resolve(Buffer.concat(chunks).toString("utf-8")));
-    stream.on("error", reject);
-  });
-
 const toSrtTime = (seconds) => {
   const ms = Math.floor((Number(seconds) % 1) * 1000);
   const total = Math.floor(Number(seconds));
   const s = total % 60;
   const m = Math.floor((total / 60) % 60);
   const h = Math.floor(total / 3600);
-  return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")},${String(ms).padStart(3,"0")}`;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")},${String(ms).padStart(3, "0")}`;
 };
