@@ -34,13 +34,12 @@ const putTxt = async (bucket, key, text) => {
     );
 }
 
-const putSrt = async (bucket, baseName, language, srtText) => {
-    const key = `output/srt/${language}/${baseName}.srt`
+const putSrt = async (bucket, key, text) => {
     console.log("Putting SRT", key, "to", bucket);
     await s3Client.send(new PutObjectCommand({
         Bucket: bucket,
         Key: key,
-        Body: srtText,
+        Body: text,
         ContentType: "application/x-subrip; charset=utf-8"
     }));
 }

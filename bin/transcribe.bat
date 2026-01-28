@@ -33,10 +33,10 @@ echo AWS profile name: %AWS_PROFILE%
 REM ==== CLEANUP OUTPUTS ====
 start aws s3 rm s3://%BUCKET%/output/json/%BASE%.json --profile %AWS_PROFILE%
 start aws s3 rm s3://%BUCKET%/output/txt/%BASE%.txt --profile %AWS_PROFILE%
-start aws s3 rm s3://%BUCKET%/output/srt/en/%BASE%.srt --profile %AWS_PROFILE%
-start aws s3 rm s3://%BUCKET%/output/srt/es/%BASE%.srt --profile %AWS_PROFILE%
-start aws s3 rm s3://%BUCKET%/output/srt/pl/%BASE%.srt --profile %AWS_PROFILE%
-start aws s3 rm s3://%BUCKET%/output/srt/pt/%BASE%.srt --profile %AWS_PROFILE%
+start aws s3 rm s3://%BUCKET%/output/srt/%BASE%-en.srt --profile %AWS_PROFILE%
+start aws s3 rm s3://%BUCKET%/output/srt/%BASE%-es.srt --profile %AWS_PROFILE%
+start aws s3 rm s3://%BUCKET%/output/srt/%BASE%-pl.srt --profile %AWS_PROFILE%
+start aws s3 rm s3://%BUCKET%/output/srt/%BASE%-pt.srt --profile %AWS_PROFILE%
 
 REM ==== CLEANUP INPUT ====
 start aws s3 rm s3://%BUCKET%/input/%BASE%.mp3 --profile %AWS_PROFILE%

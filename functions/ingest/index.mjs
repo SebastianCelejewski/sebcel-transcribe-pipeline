@@ -47,7 +47,7 @@ export const handler = async (event, context) => {
     OutputBucketName: bucket,
     OutputKey: outputKey
   };
-  
+
   await transcribeClient.send(new StartTranscriptionJobCommand(params));
 
   console.log("Started Transcribe job for", key);
