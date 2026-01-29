@@ -11,5 +11,8 @@
   "description": "",
   "dependencies": {
     "@aws-sdk/client-transcribe": "^3.971.0"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.4"
   }
 }
