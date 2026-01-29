@@ -1,128 +1,152 @@
-# How AWS Transcribe Uses the Caller’s IAM Role
+# Lessons Learned – sebcel-transcribe-pipeline
 
-This section explains **how and why AWS Transcribe is able to perform S3 operations using the caller’s IAM role**, even though the transcription job itself is executed asynchronously and ultimately runs as the service principal `transcribe.amazonaws.com`.
+This document describes **actual, observed AWS behavior** discovered while building the audio → transcription → post‑processing pipeline.
 
-The behavior is non-obvious, poorly documented, and easy to misunderstand.
-
----
-
-## What does NOT happen
-
-Before explaining what actually happens, it is important to rule out common misconceptions.
-
-### Transcribe SDK inside Lambda
-
-AWS Transcribe does **not** run as a library inside the Lambda function.
-
-The AWS SDK in Lambda:
-- only sends a control-plane API request (`StartTranscriptionJob`)
-- does not participate in any data-plane operations
-- does not proxy S3 access
-
-After the API call returns, the Lambda runtime is no longer involved.
-
-### Transcribe assuming the Lambda execution role
-
-AWS Transcribe does **not** explicitly assume the Lambda execution role via `sts:AssumeRole`, nor does it receive the role via `iam:PassRole`.
-
-There is no role chaining or role delegation in the usual IAM sense.
+These are **verified conclusions**, not assumptions. They are based on:
+- CloudTrail **Data Events** (S3)
+- real runtime failures
+- systematic comparison of IAM policies vs S3 bucket policies
+- empirical behavior of AWS Transcribe and AWS Translate across regions
 
 ---
 
-## What actually happens
+## 1. Transcribe performs a preliminary "write access check"
 
-AWS Transcribe operates in **two distinct phases**, each with a different security context.
+Before starting the actual transcription job, AWS Transcribe:
+- attempts to write a temporary object:
 
----
+  `output/json/.write_access_check_file.temp`
 
-## Phase 1: Validation (caller context)
+If this operation fails:
+- the transcription job is **not started**
+- Transcribe returns a **misleading error**:
 
-When `StartTranscriptionJob` is called, AWS Transcribe first performs a **validation phase**.
+```
+BadRequestException: The specified S3 bucket can't be accessed
+```
 
-The purpose of this phase is to answer the question:
+### Critical detail
+Although Transcribe itself performs the S3 write, it also **validates that the caller** (the ingest Lambda) **has permission** to write to the target prefix.
 
-> “Is the caller allowed to reference and write to this S3 location?”
+➡️ The ingest Lambda **must have `s3:PutObject` on `output/json/*`**, even if:
+- the Lambda never writes objects there itself
 
-To do this, Transcribe performs a write-access check by attempting to create a temporary object: output/json/.write_access_check_file.temp
-
-output/json/.write_access_check_file.temp
-
-
-### Security context
-
-This S3 operation is executed using:
-- the **STS session identity of the caller**
-- the **same IAM role that invoked `StartTranscriptionJob`**
-
-CloudTrail data events show this clearly:
-- `userIdentity.type = AssumedRole`
-- the role ARN matches the Lambda execution role
-- `invokedBy = transcribe.amazonaws.com`
-
-This is not role assumption — it is **control-plane propagation of the caller’s identity**.
-
-If this validation write fails:
-- the transcription job is rejected
-- AWS returns a generic `BadRequestException`
-- the execution phase never begins
+Without this permission:
+- the write access check fails
+- Transcribe surfaces a false `BadRequestException`
 
 ---
 
-## Phase 2: Execution (service principal)
+## 2. Permission validation ≠ execution identity
 
-Only after validation succeeds does AWS Transcribe begin the actual transcription job.
+AWS Transcribe:
+- validates whether the caller is *allowed* to reference the given S3 locations
+- but **does not execute S3 operations as the caller**
 
-During execution:
-- input media is read from S3
-- output files are written to S3
-- all S3 access is performed as the service principal: transcribe.amazonaws.com
+CloudTrail may display the Lambda role ARN in the request context, but:
+- this is **authorization context**, not execution identity
+- the actual S3 actor remains `transcribe.amazonaws.com`
 
-
-At this stage:
-- the Lambda execution role is no longer relevant
-- permissions are evaluated **only** against the S3 bucket policy
+Confusing these two concepts leads to incorrect IAM conclusions.
 
 ---
 
-## Why AWS uses this model
+## 3. IAM policy and bucket policy must both allow access
 
-This two-phase model exists for security reasons.
+Access to S3 objects requires **both**:
+1. an identity‑based policy (IAM role)
+2. a resource‑based policy (S3 bucket policy)
 
-Without validation:
-- any principal with `transcribe:StartTranscriptionJob`
-- could cause Transcribe to write objects into arbitrary S3 buckets
+If either one is missing:
+- the request fails with `AccessDenied`
+- or the failure is masked as a `BadRequestException`
 
-By validating S3 access using the caller’s identity, AWS ensures:
-- the caller is authorized to reference the target bucket and prefix
-- privilege escalation via Transcribe is not possible
-
-This pattern is similar to how AWS validates:
-- `iam:PassRole`
-- `kms:Decrypt` permissions
-- resource references in `ec2:RunInstances`
+### Debugging rule
+- **CloudTrail S3 Data Events** are the only reliable source of truth
+- Lambda CloudWatch logs alone are insufficient
 
 ---
 
-## Key takeaway
+## 4. S3 Event Notifications are strictly validated
 
-AWS Transcribe does **not** assume the Lambda execution role.
+When configuring S3 Event Notifications:
+- S3 immediately validates the destination Lambda
 
-However, **it validates S3 access using the caller’s STS identity before executing the job as a service principal**.
+If any of the following are missing or incorrect:
+- `aws_lambda_permission`
+- correct `source_arn`
+- correct `source_account`
 
-This distinction explains why:
-- the Lambda role requires `s3:PutObject` on the output prefix
-- missing that permission causes `BadRequestException`
-- bucket policy alone is not sufficient
+S3 fails with:
+```
+InvalidArgument: Unable to validate destination
+```
+
+➡️ Resource ordering and `depends_on` in Terraform are significant.
 
 ---
 
-## Summary
+## 5. Terraform state ≠ actual AWS state
 
-- Validation phase → caller IAM role
-- Execution phase → `transcribe.amazonaws.com`
-- Both IAM role permissions and bucket policy must be correct
-- CloudTrail data events are the only reliable way to observe this behavior
+Terraform:
+- compares **state vs configuration**
+- does **not detect** manual changes made directly in AWS
 
+Consequences:
+- silent configuration drift
+- false confidence in infrastructure correctness
 
+### Recovery tools
+- `terraform refresh`
+- `terraform state rm`
+- in critical situations: destroy / recreate
 
+---
+
+## 6. AWS regions differ in real capabilities
+
+- AWS Transcribe works in `sa-east-1`
+- AWS Translate does **not** operate in `sa-east-1`
+
+Attempting to use the local endpoint:
+```
+translate.sa-east-1.amazonaws.com
+```
+results in:
+```
+ENOTFOUND
+```
+
+### Solution
+- Explicitly use AWS Translate in `us-east-1`
+- Set the region explicitly in the SDK client
+
+---
+
+## 7. Idempotency as a conscious design choice
+
+Implemented mechanisms:
+- deterministic output object keys
+- `HeadObject` checks for artifact existence
+- prefix‑based triggers to avoid recursive loops
+
+Intentionally **not** implemented:
+- hard idempotency locks
+
+Testing strategy:
+- delete generated artifacts
+- re‑upload the same input file
+
+---
+
+## 8. Using CloudTrail Data events
+
+AWS often:
+- masks IAM and S3 permission errors as `BadRequestException`
+- performs undocumented pre‑flight validations
+
+➡️ **CloudTrail S3 Data Events are the only reliable debugging source** when S3 behavior appears illogical.
+
+If an AWS error message makes no sense:
+- the explanation is almost always in CloudTrail, not in the exception text.
 
