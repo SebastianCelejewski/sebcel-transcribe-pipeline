@@ -2,7 +2,7 @@ resource "aws_lambda_function" "ingest" {
   function_name = "sebcel-transcribe-ingest-function-${var.environment}"
   role          = aws_iam_role.ingest.arn
   runtime       = "nodejs22.x"
-  handler       = "index.handler"
+  handler       = "handler.handleEvent"
 
   filename         = data.archive_file.ingest_function.output_path
   source_code_hash = data.archive_file.ingest_function.output_base64sha256

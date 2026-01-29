@@ -4,7 +4,7 @@ import { srtProcessing } from "./srtProcessing.mjs";
 
 const SUPPORTED_LANGUAGES = ["es", "pl", "en", "pt"];
 
-export const handler = async (event) => {
+export const handleEvent = async (event) => {
   const record = event.Records[0];
   const bucket = record.s3.bucket.name;
   const key = decodeKey(record);

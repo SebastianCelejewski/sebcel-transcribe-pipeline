@@ -5,7 +5,7 @@ import path from "path";
 const transcribeClient = new TranscribeClient({});
 const s3Client = new S3Client({});
 
-export const handler = async (event, context) => {
+export const handleEvent = async (event, context) => {
   const eventRecord = event.Records[0];
 
   const bucket = eventRecord.s3.bucket.name;
