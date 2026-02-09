@@ -78,11 +78,13 @@ const translateSegments = async (segments, source, target) => {
 
 const saveSrtFiles = async (bucket, baseName, requiredLanguages, srtTranslations) => {
   console.log("Saving srt files")
-  for (const lang of requiredLanguages) {
-    const key = `output/srt/${baseName}.${lang}.srt`
-    const text = srtTranslations[lang]
-    s3.putSrt(bucket, key, text)
-  }
+  await Promise.all(
+    requiredLanguages.map(lang => {
+      const key = `output/srt/${baseName}.${lang}.srt`
+      const text = srtTranslations[lang]
+      return s3.putSrt(bucket, key, text)
+    })
+  )
 }
 
 export const srtProcessing = {
