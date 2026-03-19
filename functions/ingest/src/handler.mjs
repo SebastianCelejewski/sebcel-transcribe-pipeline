@@ -39,7 +39,7 @@ export const handleEvent = async (event, context) => {
 
   const params = {
     IdentifyLanguage: true,
-    LanguageOptions: ["es-ES", "pt-BR", "pl-PL", "en-US"],
+    LanguageOptions: ["es-ES", "pt-BR", "pl-PL", "en-US", "ko-KR"],
 
     Media: { MediaFileUri: fileUri },
     MediaFormat: extension,

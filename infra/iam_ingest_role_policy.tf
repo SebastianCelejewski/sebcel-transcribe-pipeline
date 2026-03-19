@@ -1,5 +1,5 @@
 resource "aws_iam_role" "ingest" {
-  name = "sebcel-transcribe-ingest-role-${var.environment}"
+  name = "sebcel-transcribe-ingest-function-role-${var.environment}"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -15,12 +15,12 @@ resource "aws_iam_role" "ingest" {
   })
 
   tags = {
-    Name = "sebcel-transcribe-ingest-role-${var.environment}"
+    Name = "sebcel-transcribe-ingest-function-role-${var.environment}"
   }
 }
 
 resource "aws_iam_policy" "ingest" {
-  name = "sebcel-transcribe-ingest-policy-${var.environment}"
+  name = "sebcel-transcribe-ingest-function-policy-${var.environment}"
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -73,7 +73,7 @@ resource "aws_iam_policy" "ingest" {
   })
 
   tags = {
-    Name = "sebcel-transcribe-ingest-policy-${var.environment}"
+    Name = "sebcel-transcribe-ingest-function-policy-${var.environment}"
   }
 }
 

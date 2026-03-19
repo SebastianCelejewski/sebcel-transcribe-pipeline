@@ -1,5 +1,5 @@
 resource "aws_iam_role" "postprocess" {
-  name = "sebcel-transcribe-postprocess-role-${var.environment}"
+  name = "sebcel-transcribe-postprocess-function-role-${var.environment}"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -15,12 +15,12 @@ resource "aws_iam_role" "postprocess" {
   })
 
   tags = {
-    Name = "sebcel-transcribe-postprocess-role-${var.environment}"
+    Name = "sebcel-transcribe-postprocess-function-role-${var.environment}"
   }
 }
 
 resource "aws_iam_policy" "postprocess" {
-  name = "sebcel-transcribe-postprocess-policy-${var.environment}"
+  name = "sebcel-transcribe-postprocess-function-policy-${var.environment}"
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -76,7 +76,7 @@ resource "aws_iam_policy" "postprocess" {
   })
 
   tags = {
-    Name = "sebcel-transcribe-postprocess-policy-${var.environment}"
+    Name = "sebcel-transcribe-postprocess-function-policy-${var.environment}"
   }
 }
 
